@@ -56,19 +56,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     });
   }, []);
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-3 lg:gap-6">
-          {/* Left: Brand Logo & Level Picker */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0 min-w-0">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs w-full max-w-full overflow-hidden">
+      <div className="w-full px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-16 gap-2">
+          {/* Left: Brand Logo & Level Picker (Starts from the very left edge) */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div
-              className="flex items-center gap-2.5 shrink-0 cursor-pointer"
+              className="flex items-center gap-2 shrink-0 cursor-pointer"
               onClick={() => onSelectTab('explore')}
             >
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-700 via-brand-600 to-brand-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20 shrink-0">
                 <Compass className="w-5 h-5" />
               </div>
-              <div className="hidden sm:block shrink-0">
+              <div className="shrink-0">
                 <div className="font-extrabold text-sm text-slate-900 tracking-tight leading-none">
                   Pathway Explorer
                 </div>
@@ -80,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Level Selector Dropdown */}
             <div className="relative group shrink-0">
-              <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 cursor-pointer transition-colors max-w-[160px] sm:max-w-[190px]">
+              <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 cursor-pointer transition-colors max-w-[140px] sm:max-w-[180px]">
                 <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
                 <span className="text-xs font-semibold text-slate-800 truncate">
                   {currentLevel.name}
@@ -118,47 +118,50 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Center Navigation Tabs (Displayed on wide screens without collision) */}
+          {/* Center Navigation Tabs (Responsive: compact on xl, full on 2xl) */}
           <nav className="hidden xl:flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/50 shrink-0">
             <button
               onClick={() => onSelectTab('explore')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 2xl:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
                 activeTab === 'explore'
                   ? 'bg-white text-brand-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
-              <span>Branching Tree</span>
+              <span className="hidden 2xl:inline">Branching Tree</span>
+              <span className="2xl:hidden">Tree</span>
             </button>
 
             <button
               onClick={() => onSelectTab('career-to-routes')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 2xl:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
                 activeTab === 'career-to-routes'
                   ? 'bg-white text-emerald-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Career to Routes</span>
+              <span className="hidden 2xl:inline">Career to Routes</span>
+              <span className="2xl:hidden">Careers</span>
             </button>
 
             <button
               onClick={() => onSelectTab('switching')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 2xl:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
                 activeTab === 'switching'
                   ? 'bg-white text-indigo-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Shuffle className="w-3.5 h-3.5" />
-              <span>Switching Routes</span>
+              <span className="hidden 2xl:inline">Switching Routes</span>
+              <span className="2xl:hidden">Switching</span>
             </button>
 
             <button
               onClick={() => onSelectTab('directory')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 2xl:px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
                 activeTab === 'directory'
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -169,35 +172,36 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Right Actions - All shrink-0 and cleanly responsive so nothing gets cut off */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Java Backend Status Badge */}
             {javaBackendOnline !== null && (
               <a
                 href="http://localhost:8080/api/health"
                 target="_blank"
                 rel="noreferrer"
-                className={`hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-colors border ${
+                className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-colors border shrink-0 ${
                   javaBackendOnline
                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                     : 'bg-slate-50 text-slate-500 border-slate-200'
                 }`}
-                title="Java 21 REST Backend (Port 8080)"
+                title={`Java 21 REST Backend (${javaBackendOnline ? 'Online' : 'Offline'})`}
               >
-                <span className={`w-2 h-2 rounded-full ${javaBackendOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                <span>Java Backend {javaBackendOnline ? 'Online' : 'Offline'}</span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${javaBackendOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                <span className="hidden 2xl:inline">Java Backend {javaBackendOnline ? 'Online' : 'Offline'}</span>
+                <span className="2xl:hidden text-[10px]">Java API</span>
               </a>
             )}
 
             {/* Search Trigger */}
             <button
               onClick={onOpenSearch}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-600 text-xs font-medium transition-colors border border-slate-200/50"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-600 text-xs font-medium transition-colors border border-slate-200/50 shrink-0"
               title="Search (Ctrl + K)"
             >
-              <Search className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden md:inline">Quick Search</span>
-              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
+              <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span className="hidden lg:inline">Search</span>
+              <kbd className="hidden 2xl:inline-block px-1.5 py-0.5 text-[9px] font-bold text-slate-400 bg-white border border-slate-200 rounded">
                 ⌘K
               </kbd>
             </button>
@@ -205,17 +209,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Shortlist Curious List button */}
             <button
               onClick={onOpenShortlist}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
                 shortlistCount > 0
                   ? 'bg-amber-100 text-amber-900 hover:bg-amber-200/80 border border-amber-300/80 shadow-xs'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/50'
               }`}
               title="Curious Shortlist"
             >
-              <BookmarkCheck className={`w-3.5 h-3.5 ${shortlistCount > 0 ? 'text-amber-600 fill-amber-500' : 'text-slate-400'}`} />
-              <span className="hidden sm:inline">Shortlist</span>
+              <BookmarkCheck className={`w-3.5 h-3.5 shrink-0 ${shortlistCount > 0 ? 'text-amber-600 fill-amber-500' : 'text-slate-400'}`} />
+              <span className="hidden md:inline">Shortlist</span>
               {shortlistCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center">
+                <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center shrink-0">
                   {shortlistCount}
                 </span>
               )}
@@ -224,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Share / Export */}
             <button
               onClick={onOpenShareModal}
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200/50 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200/50 transition-colors shrink-0"
               title="Share or Export"
             >
               <Share2 className="w-4 h-4" />
@@ -232,24 +236,24 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* User Profile / Authentication */}
             {user ? (
-              <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
+              <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 shrink-0">
                 <div
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-800 text-xs font-bold"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-800 text-xs font-bold shrink-0"
                   title={`Logged in as ${user.username} (${user.roles.join(', ')})`}
                 >
-                  <span className="w-5 h-5 rounded-lg bg-brand-600 text-white text-[10px] flex items-center justify-center uppercase">
+                  <span className="w-5 h-5 rounded-lg bg-brand-600 text-white text-[10px] flex items-center justify-center uppercase shrink-0">
                     {user.username.slice(0, 2)}
                   </span>
                   <span className="max-w-[70px] truncate hidden md:inline">{user.username}</span>
                   {user.roles.includes('ROLE_ADMIN') && (
-                    <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-600 text-white font-extrabold uppercase">
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-600 text-white font-extrabold uppercase shrink-0">
                       Admin
                     </span>
                   )}
                 </div>
                 <button
                   onClick={onLogout}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
                   title="Sign Out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -258,10 +262,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuthModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs shadow-brand-500/20"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs shadow-brand-500/20 shrink-0"
                 title="Sign In / Register"
               >
-                <LogIn className="w-3.5 h-3.5" />
+                <LogIn className="w-3.5 h-3.5 shrink-0" />
                 <span>Sign In</span>
               </button>
             )}

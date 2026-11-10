@@ -181,7 +181,7 @@ export const App: React.FC = () => {
   const currentLevel = EDUCATION_LEVELS.find(l => l.id === currentLevelId) || EDUCATION_LEVELS[0];
 
   return (
-    <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-brand-500 selection:text-white overflow-x-hidden w-full max-w-full">
       {/* Top Navbar */}
       <Navbar
         currentLevel={currentLevel}
