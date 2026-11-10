@@ -1,167 +1,144 @@
 package com.pathway.explorer.service;
 
+import com.pathway.explorer.dto.PagedResponse;
+import com.pathway.explorer.exception.ResourceNotFoundException;
 import com.pathway.explorer.model.*;
-import com.pathway.explorer.repository.PathwayRepository;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.pathway.explorer.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
 
+import java.util.*;
+
+@Service
 public class PathwayService {
 
-    private final PathwayRepository repository;
+    private final EducationLevelRepository levelRepository;
+    private final CourseRepository courseRepository;
+    private final CareerRepository careerRepository;
+    private final EntranceExamRepository examRepository;
+    private final SwitchingRouteRepository switchingRouteRepository;
 
-    public PathwayService(PathwayRepository repository) {
-        this.repository = repository;
+    public PathwayService(
+        EducationLevelRepository levelRepository,
+        CourseRepository courseRepository,
+        CareerRepository careerRepository,
+        EntranceExamRepository examRepository,
+        SwitchingRouteRepository switchingRouteRepository
+    ) {
+        this.levelRepository = levelRepository;
+        this.courseRepository = courseRepository;
+        this.careerRepository = careerRepository;
+        this.examRepository = examRepository;
+        this.switchingRouteRepository = switchingRouteRepository;
     }
 
     public List<EducationLevel> getLevels() {
-        return repository.getAllLevels();
+        return levelRepository.findAll();
     }
 
-    public Optional<EducationLevel> getLevel(String id) {
-        return repository.getLevelById(id);
+    public EducationLevel getLevelById(String id) {
+        return levelRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Education level not found: " + id));
     }
 
-    public List<Course> getCourses(String domain, String levelId) {
-        return repository.getAllCourses().stream()
-            .filter(c -> domain == null || domain.isBlank() || domain.equalsIgnoreCase("all") || c.domains().stream().anyMatch(d -> d.equalsIgnoreCase(domain)))
-            .filter(c -> {
-                if (levelId == null || levelId.isBlank()) return true;
-                Optional<EducationLevel> lvl = repository.getLevelById(levelId);
-                return lvl.map(l -> l.courseIds().contains(c.id()) || (levelId.equalsIgnoreCase("12th_pcm") && c.isPcmPrimary())).orElse(true);
-            })
-            .collect(Collectors.toList());
+    public List<Course> getAllCourses(String domain, String levelId) {
+        List<Course> list;
+        if (domain != null && !domain.isBlank() && !"All".equalsIgnoreCase(domain)) {
+            list = courseRepository.findByDomainsContaining(domain);
+        } else {
+            list = courseRepository.findAll();
+        }
+
+        if (levelId != null && !levelId.isBlank()) {
+            levelRepository.findById(levelId).ifPresent(level -> {
+                Set<String> allowedIds = new HashSet<>(level.courseIds());
+                list.removeIf(c -> !allowedIds.contains(c.id()));
+            });
+        }
+        return list;
     }
 
-    public Optional<Course> getCourse(String id) {
-        return repository.getCourseById(id);
+    public PagedResponse<Course> getCoursesPaged(String domain, int page, int size, String sortBy, String sortDir) {
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy != null ? sortBy : "code"));
+
+        Page<Course> coursePage;
+        if (domain != null && !domain.isBlank() && !"All".equalsIgnoreCase(domain)) {
+            coursePage = courseRepository.findByDomainsContaining(domain, pageable);
+        } else {
+            coursePage = courseRepository.findAll(pageable);
+        }
+        return PagedResponse.from(coursePage);
     }
 
-    public List<Career> getCareers(String domain) {
-        return repository.getAllCareers().stream()
-            .filter(c -> domain == null || domain.isBlank() || domain.equalsIgnoreCase("all") || c.domain().equalsIgnoreCase(domain))
-            .collect(Collectors.toList());
+    public Course getCourseById(String id) {
+        return courseRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found: " + id));
     }
 
-    public Optional<Career> getCareer(String id) {
-        return repository.getCareerById(id);
+    public List<Career> getAllCareers(String domain) {
+        if (domain != null && !domain.isBlank() && !"All".equalsIgnoreCase(domain)) {
+            return careerRepository.findByDomainIgnoreCase(domain);
+        }
+        return careerRepository.findAll();
     }
 
-    public List<EntranceExam> getExams() {
-        return repository.getAllExams();
+    public PagedResponse<Career> getCareersPaged(String domain, int page, int size, String sortBy, String sortDir) {
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy != null ? sortBy : "title"));
+
+        Page<Career> careerPage;
+        if (domain != null && !domain.isBlank() && !"All".equalsIgnoreCase(domain)) {
+            careerPage = careerRepository.findByDomainIgnoreCase(domain, pageable);
+        } else {
+            careerPage = careerRepository.findAll(pageable);
+        }
+        return PagedResponse.from(careerPage);
     }
 
-    public Optional<EntranceExam> getExam(String id) {
-        return repository.getExamById(id);
+    public Career getCareerById(String id) {
+        return careerRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Career not found: " + id));
+    }
+
+    public List<EntranceExam> getExams(String difficulty) {
+        if (difficulty != null && !difficulty.isBlank() && !"All".equalsIgnoreCase(difficulty)) {
+            return examRepository.findByDifficultyIgnoreCase(difficulty);
+        }
+        return examRepository.findAll();
+    }
+
+    public EntranceExam getExamById(String id) {
+        return examRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Entrance exam not found: " + id));
     }
 
     public List<SwitchingRoute> getSwitchingRoutes(String difficulty) {
-        return repository.getAllSwitchingRoutes().stream()
-            .filter(s -> difficulty == null || difficulty.isBlank() || difficulty.equalsIgnoreCase("all") || s.difficulty().equalsIgnoreCase(difficulty))
-            .collect(Collectors.toList());
+        if (difficulty != null && !difficulty.isBlank() && !"All".equalsIgnoreCase(difficulty)) {
+            return switchingRouteRepository.findByDifficultyIgnoreCase(difficulty);
+        }
+        return switchingRouteRepository.findAll();
     }
 
     public Map<String, Object> search(String query) {
         if (query == null || query.isBlank()) {
             return Map.of("courses", List.of(), "careers", List.of(), "exams", List.of(), "switchingRoutes", List.of());
         }
-        String q = query.trim().toLowerCase();
+        String q = query.trim();
 
-        List<Course> matchingCourses = repository.getAllCourses().stream()
-            .filter(c -> c.name().toLowerCase().contains(q) || c.code().toLowerCase().contains(q) || c.description().toLowerCase().contains(q))
-            .limit(5)
-            .toList();
-
-        List<Career> matchingCareers = repository.getAllCareers().stream()
-            .filter(c -> c.title().toLowerCase().contains(q) || c.shortDesc().toLowerCase().contains(q) || c.skills().stream().anyMatch(s -> s.toLowerCase().contains(q)))
-            .limit(5)
-            .toList();
-
-        List<EntranceExam> matchingExams = repository.getAllExams().stream()
-            .filter(e -> e.name().toLowerCase().contains(q) || e.fullName().toLowerCase().contains(q) || e.conductingBody().toLowerCase().contains(q))
-            .limit(5)
-            .toList();
-
-        List<SwitchingRoute> matchingSwitches = repository.getAllSwitchingRoutes().stream()
-            .filter(s -> s.title().toLowerCase().contains(q) || s.fromDomain().toLowerCase().contains(q) || s.toDomain().toLowerCase().contains(q))
-            .limit(5)
-            .toList();
+        List<Course> courses = courseRepository.searchCourses(q).stream().limit(6).toList();
+        List<Career> careers = careerRepository.searchCareers(q).stream().limit(6).toList();
+        List<EntranceExam> exams = examRepository.searchExams(q).stream().limit(6).toList();
+        List<SwitchingRoute> routes = switchingRouteRepository.searchSwitchingRoutes(q).stream().limit(6).toList();
 
         return Map.of(
-            "courses", matchingCourses,
-            "careers", matchingCareers,
-            "exams", matchingExams,
-            "switchingRoutes", matchingSwitches
+            "courses", courses,
+            "careers", careers,
+            "exams", exams,
+            "switchingRoutes", routes
         );
-    }
-
-    public List<ShortlistItem> getShortlist() {
-        return repository.getShortlist();
-    }
-
-    public ShortlistItem addToShortlist(ShortlistItem item) {
-        return repository.saveShortlistItem(item);
-    }
-
-    public boolean removeFromShortlist(String type, String id) {
-        return repository.removeShortlistItem(type, id);
-    }
-
-    public void clearShortlist() {
-        repository.clearShortlist();
-    }
-
-    public String exportShortlistMarkdown() {
-        List<ShortlistItem> items = repository.getShortlist();
-        if (items.isEmpty()) {
-            return "# My Education Pathway Shortlist\n\nNo items saved in backend shortlist yet.";
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("# My Education Pathway Shortlist\n\n");
-        sb.append("*Generated by Java Backend on: ").append(LocalDate.now().toString()).append("*\n\n");
-
-        List<ShortlistItem> careers = items.stream().filter(i -> "career".equalsIgnoreCase(i.type())).toList();
-        List<ShortlistItem> courses = items.stream().filter(i -> "course".equalsIgnoreCase(i.type())).toList();
-        List<ShortlistItem> exams = items.stream().filter(i -> "exam".equalsIgnoreCase(i.type())).toList();
-
-        if (!careers.isEmpty()) {
-            sb.append("## 🎯 Target Careers (").append(careers.size()).append(")\n\n");
-            for (int i = 0; i < careers.size(); i++) {
-                ShortlistItem c = careers.get(i);
-                sb.append(i + 1).append(". **").append(c.title()).append("** - *").append(c.subtitle()).append("*\n");
-                if (c.userNotes() != null && !c.userNotes().isBlank()) {
-                    sb.append("   > Note: ").append(c.userNotes()).append("\n");
-                }
-            }
-            sb.append("\n");
-        }
-
-        if (!courses.isEmpty()) {
-            sb.append("## 🎓 Prospective Courses (").append(courses.size()).append(")\n\n");
-            for (int i = 0; i < courses.size(); i++) {
-                ShortlistItem c = courses.get(i);
-                sb.append(i + 1).append(". **").append(c.title()).append("** - *").append(c.subtitle()).append("*\n");
-                if (c.userNotes() != null && !c.userNotes().isBlank()) {
-                    sb.append("   > Note: ").append(c.userNotes()).append("\n");
-                }
-            }
-            sb.append("\n");
-        }
-
-        if (!exams.isEmpty()) {
-            sb.append("## 📝 Entrance Exams (").append(exams.size()).append(")\n\n");
-            for (int i = 0; i < exams.size(); i++) {
-                ShortlistItem e = exams.get(i);
-                sb.append(i + 1).append(". **").append(e.title()).append("** - *").append(e.subtitle()).append("*\n");
-                if (e.userNotes() != null && !e.userNotes().isBlank()) {
-                    sb.append("   > Note: ").append(e.userNotes()).append("\n");
-                }
-            }
-            sb.append("\n");
-        }
-
-        sb.append("---\n*Powered by Education Pathway Explorer Java REST Service*");
-        return sb.toString();
     }
 }

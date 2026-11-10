@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LevelId, ShortlistItem } from './types';
 import { EDUCATION_LEVELS, COURSES, CAREERS, ENTRANCE_EXAMS } from './data/pathwayData';
 import { getStoredShortlist, saveStoredShortlist } from './utils/storage';
-import { apiService } from './services/apiService';
+import { apiService, UserProfile } from './services/apiService';
 import { Navbar } from './components/Navbar';
 import { LevelSelector } from './components/LevelSelector';
 import { PathwayTree } from './components/PathwayTree';
@@ -13,6 +13,7 @@ import { DetailDrawer } from './components/DetailDrawer';
 import { ShortlistModal } from './components/ShortlistModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { ShareModal } from './components/ShareModal';
+import { AuthModal } from './components/AuthModal';
 import {
   Compass,
   Layers,
@@ -33,10 +34,31 @@ export const App: React.FC = () => {
     id: string;
   } | null>(null);
 
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(apiService.getStoredUser());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   // Modals
   const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+
+  const handleAuthSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    // Reload shortlist for newly authenticated user
+    apiService.getShortlist().then(items => {
+      setShortlist(items);
+      saveStoredShortlist(items);
+    });
+  };
+
+  const handleLogout = () => {
+    apiService.logout();
+    setCurrentUser(null);
+    // Revert to local storage or guest shortlist
+    const local = getStoredShortlist();
+    setShortlist(local);
+  };
 
   // Load initial shortlist & URL hash params on mount
   useEffect(() => {
@@ -170,6 +192,9 @@ export const App: React.FC = () => {
         onOpenShortlist={() => setIsShortlistOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenShareModal={() => setIsShareOpen(true)}
+        user={currentUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
@@ -283,6 +308,13 @@ export const App: React.FC = () => {
         onClose={() => setIsShareOpen(false)}
         currentLevel={currentLevel}
         shortlist={shortlist}
+      />
+
+      {/* Authentication Modal (Sign In / Sign Up) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
       />
     </div>
   );

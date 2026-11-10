@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { EducationLevel, ShortlistItem, LevelId } from '../types';
 import { EDUCATION_LEVELS } from '../data/pathwayData';
 import { apiService } from '../services/apiService';
+import { UserProfile } from '../services/apiService';
 import {
   Compass,
   MapPin,
@@ -13,7 +14,11 @@ import {
   Shuffle,
   BookOpen,
   ChevronDown,
-  Server
+  Server,
+  UserCheck,
+  LogIn,
+  LogOut,
+  ShieldAlert
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -25,6 +30,9 @@ interface NavbarProps {
   onOpenShortlist: () => void;
   onOpenSearch: () => void;
   onOpenShareModal: () => void;
+  user: UserProfile | null;
+  onOpenAuthModal: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -35,7 +43,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   shortlistCount,
   onOpenShortlist,
   onOpenSearch,
-  onOpenShareModal
+  onOpenShareModal,
+  user,
+  onOpenAuthModal,
+  onLogout
 }) => {
   const [javaBackendOnline, setJavaBackendOnline] = useState<boolean | null>(null);
 
@@ -218,6 +229,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Share2 className="w-4 h-4" />
             </button>
+
+            {/* User Profile / Authentication */}
+            {user ? (
+              <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
+                <div
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-brand-50 border border-brand-200 text-brand-800 text-xs font-bold"
+                  title={`Logged in as ${user.username} (${user.roles.join(', ')})`}
+                >
+                  <span className="w-5 h-5 rounded-lg bg-brand-600 text-white text-[10px] flex items-center justify-center uppercase">
+                    {user.username.slice(0, 2)}
+                  </span>
+                  <span className="max-w-[70px] truncate hidden md:inline">{user.username}</span>
+                  {user.roles.includes('ROLE_ADMIN') && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-600 text-white font-extrabold uppercase">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={onLogout}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuthModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-all shadow-xs shadow-brand-500/20"
+                title="Sign In / Register"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </div>
 
