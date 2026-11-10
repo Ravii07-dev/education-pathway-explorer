@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DatabaseManager {
 
@@ -35,7 +37,23 @@ public class DatabaseManager {
             this.mongoUri = envUri.trim();
         }
 
-        // 2. Check application.properties if present
+        // 2. Check .env file if available
+        for (String p : List.of(".env", "../.env", "backend/.env")) {
+            Path envPath = Paths.get(p);
+            if (Files.exists(envPath)) {
+                try {
+                    for (String line : Files.readAllLines(envPath)) {
+                        line = line.trim();
+                        if (line.startsWith("MONGODB_URI=") && !line.startsWith("#")) {
+                            this.mongoUri = line.substring("MONGODB_URI=".length()).trim();
+                            break;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // 3. Check application.properties if present
         Path propsPath = Paths.get("src/main/resources/application.properties");
         if (Files.exists(propsPath)) {
             try {
@@ -52,7 +70,6 @@ public class DatabaseManager {
 
     public void testMongoConnection() {
         try {
-            // Check if MongoDB URI is syntactically valid and test basic socket connection if localhost
             if (mongoUri.contains("localhost") || mongoUri.contains("127.0.0.1")) {
                 try (var socket = new java.net.Socket()) {
                     socket.connect(new java.net.InetSocketAddress("localhost", 27017), 500);
@@ -61,7 +78,6 @@ public class DatabaseManager {
                     isMongoConnected = false;
                 }
             } else if (mongoUri.startsWith("mongodb+srv://") || mongoUri.startsWith("mongodb://")) {
-                // Cloud Atlas URI configured
                 isMongoConnected = true;
             }
         } catch (Exception e) {
@@ -73,14 +89,17 @@ public class DatabaseManager {
         try {
             Path path = Paths.get(DB_FILE);
             if (Files.exists(path)) {
-                String content = Files.readString(path, StandardCharsets.UTF_8);
-                // Parse items if available
-                System.out.println("  💾 Persistent Database loaded from: " + DB_FILE);
+                String content = Files.readString(path, StandardCharsets.UTF_8).trim();
+                List<ShortlistItem> items = parseShortlistArray(content);
+                for (ShortlistItem item : items) {
+                    persistentShortlist.put(item.type() + "_" + item.id(), item);
+                }
+                System.out.println("  💾 Persistent Database loaded: " + items.size() + " shortlisted items from " + DB_FILE);
             } else {
                 saveLocalDb();
             }
         } catch (Exception e) {
-            System.err.println("Notice: Initializing fresh persistent data store.");
+            System.err.println("Notice: Initializing fresh persistent data store. " + e.getMessage());
         }
     }
 
@@ -106,6 +125,7 @@ public class DatabaseManager {
     public ShortlistItem saveShortlist(ShortlistItem item) {
         persistentShortlist.put(item.type() + "_" + item.id(), item);
         saveLocalDb();
+        triggerMongoSyncAsync();
         return item;
     }
 
@@ -113,19 +133,34 @@ public class DatabaseManager {
         boolean removed = persistentShortlist.remove(type + "_" + id) != null;
         if (removed) {
             saveLocalDb();
+            triggerMongoSyncAsync("delete", type, id);
         }
         return removed;
+    }
+
+    private void triggerMongoSyncAsync(String... args) {
+        Thread.startVirtualThread(() -> {
+            try {
+                List<String> cmd = new ArrayList<>(List.of("node", "mongoBridge.cjs"));
+                Collections.addAll(cmd, args);
+                ProcessBuilder pb = new ProcessBuilder(cmd);
+                pb.redirectErrorStream(true);
+                Process process = pb.start();
+                process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (Exception ignored) {}
+        });
     }
 
     public void clearShortlist() {
         persistentShortlist.clear();
         saveLocalDb();
+        triggerMongoSyncAsync();
     }
 
     public Map<String, Object> getDatabaseStatus() {
         testMongoConnection();
         Map<String, Object> status = new LinkedHashMap<>();
-        status.put("databaseType", "MongoDB + Persistent Document Store");
+        status.put("databaseType", "MongoDB Atlas + In-Memory Virtual Thread Document Store");
         status.put("mongoUriConfigured", sanitizeUri(mongoUri));
         status.put("isMongoConnected", isMongoConnected);
         status.put("localPersistentFile", DB_FILE);
@@ -136,7 +171,6 @@ public class DatabaseManager {
 
     private String sanitizeUri(String uri) {
         if (uri == null) return "null";
-        // Hide password in logs if present
         if (uri.contains("@")) {
             return uri.replaceAll(":[^:@]+@", ":****@");
         }
@@ -149,5 +183,45 @@ public class DatabaseManager {
 
     public boolean isMongoConnected() {
         return isMongoConnected;
+    }
+
+    private List<ShortlistItem> parseShortlistArray(String json) {
+        List<ShortlistItem> list = new ArrayList<>();
+        if (json == null || json.isBlank() || !json.contains("{")) return list;
+
+        Pattern objPattern = Pattern.compile("\\{([^{}]+)\\}");
+        Matcher objMatcher = objPattern.matcher(json);
+        while (objMatcher.find()) {
+            String block = objMatcher.group(1);
+            String id = extractField(block, "id");
+            String type = extractField(block, "type");
+            String title = extractField(block, "title");
+            String subtitle = extractField(block, "subtitle");
+            String domain = extractField(block, "domain");
+            String dateAdded = extractField(block, "dateAdded");
+            String userNotes = extractField(block, "userNotes");
+
+            if (id != null && type != null) {
+                list.add(new ShortlistItem(
+                    id,
+                    type,
+                    title != null ? title : "",
+                    subtitle != null ? subtitle : "",
+                    domain != null ? domain : "",
+                    dateAdded != null ? dateAdded : "",
+                    userNotes != null ? userNotes : ""
+                ));
+            }
+        }
+        return list;
+    }
+
+    private String extractField(String block, String key) {
+        Pattern p = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]*)\"");
+        Matcher m = p.matcher(block);
+        if (m.find()) {
+            return m.group(1).replace("\\\"", "\"").replace("\\\\", "\\");
+        }
+        return null;
     }
 }

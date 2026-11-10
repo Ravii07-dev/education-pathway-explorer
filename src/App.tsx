@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LevelId, ShortlistItem } from './types';
 import { EDUCATION_LEVELS, COURSES, CAREERS, ENTRANCE_EXAMS } from './data/pathwayData';
 import { getStoredShortlist, saveStoredShortlist } from './utils/storage';
+import { apiService } from './services/apiService';
 import { Navbar } from './components/Navbar';
 import { LevelSelector } from './components/LevelSelector';
 import { PathwayTree } from './components/PathwayTree';
@@ -40,7 +41,17 @@ export const App: React.FC = () => {
   // Load initial shortlist & URL hash params on mount
   useEffect(() => {
     const saved = getStoredShortlist();
-    setShortlist(saved);
+    if (saved && saved.length > 0) {
+      setShortlist(saved);
+    }
+
+    // Synchronize with Java backend / MongoDB Atlas store
+    apiService.getShortlist().then(backendItems => {
+      if (backendItems && backendItems.length > 0) {
+        setShortlist(backendItems);
+        saveStoredShortlist(backendItems);
+      }
+    });
 
     // Parse URL hash if available (e.g. #level=12th_pcm&shortlist=...)
     try {
@@ -100,14 +111,14 @@ export const App: React.FC = () => {
       let updated: ShortlistItem[];
       if (exists) {
         updated = prev.filter(s => !(s.id === item.id && s.type === item.type));
+        apiService.deleteShortlistItemFromBackend(item.type, item.id);
       } else {
-        updated = [
-          ...prev,
-          {
-            ...item,
-            dateAdded: new Date().toISOString()
-          }
-        ];
+        const newItem: ShortlistItem = {
+          ...item,
+          dateAdded: new Date().toISOString()
+        };
+        updated = [...prev, newItem];
+        apiService.syncShortlistItemToBackend(newItem);
       }
       saveStoredShortlist(updated);
       return updated;
@@ -115,6 +126,7 @@ export const App: React.FC = () => {
   };
 
   const handleRemoveShortlistItem = (id: string, type: string) => {
+    apiService.deleteShortlistItemFromBackend(type, id);
     setShortlist(prev => {
       const updated = prev.filter(s => !(s.id === id && s.type === type));
       saveStoredShortlist(updated);
@@ -126,7 +138,9 @@ export const App: React.FC = () => {
     setShortlist(prev => {
       const updated = prev.map(s => {
         if (s.id === id && s.type === type) {
-          return { ...s, userNotes: notes };
+          const updatedItem = { ...s, userNotes: notes };
+          apiService.syncShortlistItemToBackend(updatedItem);
+          return updatedItem;
         }
         return s;
       });

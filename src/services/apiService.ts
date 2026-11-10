@@ -95,6 +95,28 @@ export const apiService = {
     };
   },
 
+  async getShortlist(): Promise<ShortlistItem[]> {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/shortlist`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    } catch (e) {
+      console.warn('Java backend offline, falling back to local storage', e);
+    }
+    return [];
+  },
+
+  async getDatabaseStatus(): Promise<any> {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/db-status`);
+      if (res.ok) return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
   async syncShortlistItemToBackend(item: ShortlistItem): Promise<void> {
     try {
       await fetch(`${BACKEND_BASE_URL}/shortlist`, {
