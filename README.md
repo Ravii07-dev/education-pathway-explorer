@@ -3,6 +3,7 @@
 # 🎓 Education Pathway Explorer
 ### *Map your education, discover 21st-century careers, and find zero-fear switching routes.*
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Website-2ea44f?style=for-the-badge&logo=google-chrome&logoColor=white)](https://ravii07-dev.github.io/education-pathway-explorer/)
 [![Java 21](https://img.shields.io/badge/Java-21%20LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
